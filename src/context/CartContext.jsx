@@ -13,7 +13,7 @@ import { products } from "../data/products";
 const CartContext = createContext(null);
 
 
-const API_URL = "http://localhost:8080/api/cart";
+const API_URL = "http://localhost:8081/api/cart";
 
 
 export const CartProvider = ({ children }) => {

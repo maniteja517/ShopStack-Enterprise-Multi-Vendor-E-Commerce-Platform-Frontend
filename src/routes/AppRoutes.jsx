@@ -1,286 +1,225 @@
+import React from "react";
 import { Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute";
 
-import Login from "../pages/auth/Login";
-import Register from "../pages/auth/Register";
-
-import Home from "../pages/customer/Home";
+// Customer
 import ProductList from "../pages/customer/ProductList";
 import ProductDetails from "../pages/customer/ProductDetails";
 import Cart from "../pages/customer/Cart";
 import Checkout from "../pages/customer/Checkout";
-import OrderSuccess from "../pages/customer/OrderSuccess";
 import MyOrders from "../pages/customer/MyOrders";
 import OrderDetails from "../pages/customer/OrderDetails";
+import OrderSuccess from "../pages/customer/OrderSuccess";
 
-import ProtectedRoute from "../components/auth/ProtectedRoute";
+// Authentication
+import LoginForm from "../components/auth/LoginForm";
+import RegisterForm from "../components/auth/RegisterForm";
 
+// Admin
 import AdminDashboard from "../pages/admin/AdminDashboard";
-
 import VendorManagement from "../pages/admin/VendorManagement";
-
 import MarketplaceAnalytics from "../pages/admin/MarketplaceAnalytics";
-
 import OrderMonitoring from "../pages/admin/OrderMonitoring";
-
 import CommissionManagement from "../pages/admin/CommissionManagement";
-
 import SystemMonitoring from "../pages/admin/SystemMonitoring";
-
 import BusinessReports from "../pages/admin/BusinessReports";
+import WarehouseManagement from "../pages/admin/WarehouseManagement";
+import RefundManagement from "../pages/admin/RefundManagement";
 
 function AppRoutes() {
-
     return (
         <Routes>
 
-            {/* =====================================
-                PUBLIC ROUTES
-            ===================================== */}
+            {/* =====================================================
+                CUSTOMER STORE
+            ===================================================== */}
 
             <Route
                 path="/"
-                element={<Login />}
-            />
-
-            <Route
-                path="/login"
-                element={<Login />}
-            />
-
-            <Route
-                path="/register"
-                element={<Register />}
-            />
-
-
-            {/* =====================================
-                CUSTOMER HOME
-            ===================================== */}
-
-            <Route
-                path="/home"
                 element={
-                    <ProtectedRoute>
-                        <Home />
-                    </ProtectedRoute>
-                }
-            />
-
-
-            {/* =====================================
-                PRODUCTS
-            ===================================== */}
-
-            <Route
-                path="/products"
-                element={
-                    <ProtectedRoute>
+                    <ProtectedRoute role="CUSTOMER">
                         <ProductList />
                     </ProtectedRoute>
                 }
             />
 
-
-            {/* =====================================
-                PRODUCT DETAILS
-            ===================================== */}
+            <Route
+                path="/products"
+                element={
+                    <ProtectedRoute role="CUSTOMER">
+                        <ProductList />
+                    </ProtectedRoute>
+                }
+            />
 
             <Route
                 path="/products/:id"
                 element={
-                    <ProtectedRoute>
+                    <ProtectedRoute role="CUSTOMER">
                         <ProductDetails />
                     </ProtectedRoute>
                 }
             />
 
-
-            {/* =====================================
-                CART
-            ===================================== */}
-
             <Route
                 path="/cart"
                 element={
-                    <ProtectedRoute>
+                    <ProtectedRoute role="CUSTOMER">
                         <Cart />
                     </ProtectedRoute>
                 }
             />
 
-
-            {/* =====================================
-                CHECKOUT
-            ===================================== */}
-
             <Route
                 path="/checkout"
                 element={
-                    <ProtectedRoute>
+                    <ProtectedRoute role="CUSTOMER">
                         <Checkout />
                     </ProtectedRoute>
                 }
             />
 
-
-            {/* =====================================
-                ORDER SUCCESS
-            ===================================== */}
-
+            {/* Customer Orders */}
             <Route
-                path="/order-success"
+                path="/orders"
                 element={
-                    <ProtectedRoute>
-                        <OrderSuccess />
+                    <ProtectedRoute role="CUSTOMER">
+                        <MyOrders />
                     </ProtectedRoute>
                 }
             />
 
-
-            {/* =====================================
-                MY ORDERS
-            ===================================== */}
-
+            {/* ProductList uses /my-orders */}
             <Route
                 path="/my-orders"
-                element={<MyOrders />}
+                element={
+                    <ProtectedRoute role="CUSTOMER">
+                        <MyOrders />
+                    </ProtectedRoute>
+                }
             />
 
-
-            {/* =====================================
-                ORDER DETAILS
-            ===================================== */}
-
+            {/* Individual Order Details */}
             <Route
                 path="/orders/:id"
                 element={
-                    <ProtectedRoute>
+                    <ProtectedRoute role="CUSTOMER">
                         <OrderDetails />
                     </ProtectedRoute>
                 }
             />
 
+            {/* Order Success */}
+            <Route
+                path="/order-success"
+                element={
+                    <ProtectedRoute role="CUSTOMER">
+                        <OrderSuccess />
+                    </ProtectedRoute>
+                }
+            />
 
-
-{/* =====================================
-    ADMIN DASHBOARD
-===================================== */}
-
-<Route
-    path="/admin/dashboard"
-    element={
-        <ProtectedRoute>
-            <AdminDashboard />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-
- {/* =====================================
-    VENDOR MANAGEMENT
-===================================== */}
-
-<Route
-    path="/admin/vendors"
-    element={
-        <ProtectedRoute>
-            <VendorManagement />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-{/* =====================================
-    MARKETPLACE ANALYTICS
-===================================== */}
-
-<Route
-    path="/admin/analytics"
-    element={
-        <ProtectedRoute>
-            <MarketplaceAnalytics />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-
-{/* =====================================
-    ORDER MONITORING
-===================================== */}
-
-<Route
-    path="/admin/orders"
-    element={
-        <ProtectedRoute>
-            <OrderMonitoring />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-{/* =====================================
-    COMMISSION MANAGEMENT
-===================================== */}
-
-<Route
-    path="/admin/commissions"
-    element={
-        <ProtectedRoute>
-            <CommissionManagement />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-{/* =====================================
-    SYSTEM MONITORING
-===================================== */}
-
-<Route
-    path="/admin/system"
-    element={
-        <ProtectedRoute>
-            <SystemMonitoring />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-{/* =====================================
-    BUSINESS REPORTS
-===================================== */}
-
-<Route
-    path="/admin/reports"
-    element={
-        <ProtectedRoute>
-            <BusinessReports />
-        </ProtectedRoute>
-    }
-/>
-
-
-
-            {/* =====================================
-                UNKNOWN URL
-            ===================================== */}
+            {/* =====================================================
+                AUTHENTICATION
+            ===================================================== */}
 
             <Route
-                path="*"
-                element={<Login />}
+                path="/login"
+                element={<LoginForm />}
+            />
+
+            <Route
+                path="/register"
+                element={<RegisterForm />}
+            />
+
+            {/* =====================================================
+                ADMIN
+            ===================================================== */}
+
+            <Route
+                path="/admin/dashboard"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <AdminDashboard />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/vendors"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <VendorManagement />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/analytics"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <MarketplaceAnalytics />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/orders"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <OrderMonitoring />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/commissions"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <CommissionManagement />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/system"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <SystemMonitoring />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/reports"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <BusinessReports />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/warehouses"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <WarehouseManagement />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin/refunds"
+                element={
+                    <ProtectedRoute role="ADMIN">
+                        <RefundManagement />
+                    </ProtectedRoute>
+                }
             />
 
         </Routes>
     );
 }
-
 
 export default AppRoutes;

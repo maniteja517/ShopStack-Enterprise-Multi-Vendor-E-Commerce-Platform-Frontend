@@ -36,11 +36,36 @@ function RegisterForm() {
     try {
       const response = await registerUser(formData);
 
-      alert(response.message);
+      console.log("REGISTRATION RESPONSE:", response.data);
 
-      navigate("/");
+      if (response.data?.success) {
+        alert(
+          response.data?.message ||
+            "Registration successful"
+        );
+
+        navigate("/");
+      } else {
+        alert(
+          response.data?.message ||
+            "Registration Failed"
+        );
+      }
     } catch (error) {
-      alert(error.response?.data?.message || "Registration Failed");
+      console.error(
+        "REGISTRATION ERROR:",
+        error
+      );
+
+      console.error(
+        "BACKEND RESPONSE:",
+        error.response?.data
+      );
+
+      alert(
+        error.response?.data?.message ||
+          "Registration Failed"
+      );
     }
   };
 
@@ -63,8 +88,15 @@ function RegisterForm() {
             boxShadow: 6,
           }}
         >
-          <CardContent component="form" onSubmit={handleSubmit}>
-            <Typography variant="h4" align="center" gutterBottom>
+          <CardContent
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Typography
+              variant="h4"
+              align="center"
+              gutterBottom
+            >
               ShopStack
             </Typography>
 
@@ -84,6 +116,7 @@ function RegisterForm() {
               value={formData.firstName}
               onChange={handleChange}
               margin="normal"
+              required
             />
 
             <TextField
@@ -93,6 +126,7 @@ function RegisterForm() {
               value={formData.lastName}
               onChange={handleChange}
               margin="normal"
+              required
             />
 
             <TextField
@@ -103,6 +137,7 @@ function RegisterForm() {
               value={formData.email}
               onChange={handleChange}
               margin="normal"
+              required
             />
 
             <TextField
@@ -112,6 +147,7 @@ function RegisterForm() {
               value={formData.phoneNumber}
               onChange={handleChange}
               margin="normal"
+              required
             />
 
             <TextField
@@ -122,6 +158,7 @@ function RegisterForm() {
               value={formData.password}
               onChange={handleChange}
               margin="normal"
+              required
             />
 
             <Button
@@ -133,9 +170,15 @@ function RegisterForm() {
               Register
             </Button>
 
-            <Typography align="center" mt={3}>
+            <Typography
+              align="center"
+              mt={3}
+            >
               Already have an account?{" "}
-              <Link component={RouterLink} to="/">
+              <Link
+                component={RouterLink}
+                to="/"
+              >
                 Login
               </Link>
             </Typography>

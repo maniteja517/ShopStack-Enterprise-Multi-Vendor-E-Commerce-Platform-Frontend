@@ -2,35 +2,93 @@ import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
+function getStoredUser() {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  const email = localStorage.getItem("email");
+  const userId = localStorage.getItem("userId");
 
-    if (!token) {
-      return null;
+  if (!token) {
+    return null;
+  }
+
+  return {
+    token,
+    role: role || "",
+    email: email || "",
+    userId: userId || "",
+  };
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => getStoredUser());
+
+  const login = (loginResponse) => {
+    /*
+     * Support both possible backend response formats:
+     *
+     * 1. { token, role, email, userId }
+     *
+     * 2. { data: { token, role, email, userId } }
+     */
+
+    const responseData =
+      loginResponse?.data || loginResponse;
+
+    const token =
+      responseData?.token ||
+      responseData?.accessToken ||
+      "";
+
+    const role =
+      responseData?.role ||
+      "";
+
+    const email =
+      responseData?.email ||
+      "";
+
+    const userId =
+      responseData?.userId ||
+      responseData?.id ||
+      "";
+
+    if (token) {
+      localStorage.setItem("token", token);
     }
 
-    return {
+    if (role) {
+      localStorage.setItem("role", role);
+    }
+
+    if (email) {
+      localStorage.setItem("email", email);
+    }
+
+    if (userId) {
+      localStorage.setItem("userId", String(userId));
+    }
+
+    const loggedInUser = {
       token,
       role,
       email,
+      userId,
     };
-  });
 
-  const login = (loginResponse) => {
-    localStorage.setItem("token", loginResponse.token);
-    localStorage.setItem("role", loginResponse.role);
-    localStorage.setItem("email", loginResponse.email);
+    setUser(loggedInUser);
 
-    setUser(loginResponse);
+    return loggedInUser;
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("email");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("vendorId");
+
+    sessionStorage.removeItem("redirectAfterLogin");
 
     setUser(null);
   };

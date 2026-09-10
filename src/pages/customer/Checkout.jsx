@@ -16,7 +16,6 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { createOrder } from "../../api/orderService";
 
-
 function Checkout() {
 
     const navigate = useNavigate();
@@ -25,7 +24,6 @@ function Checkout() {
         cartItems,
         clearCart,
     } = useCart();
-
 
     const [address, setAddress] = useState({
         name: "",
@@ -36,13 +34,13 @@ function Checkout() {
         pincode: "",
     });
 
-
+    const [couponCode, setCouponCode] = useState("");
+    const [couponApplied, setCouponApplied] = useState(false);
     const [loading, setLoading] = useState(false);
 
-
-    // ==========================================
-    // HANDLE INPUT CHANGE
-    // ==========================================
+    // =========================================================
+    // HANDLE ADDRESS INPUT
+    // =========================================================
 
     const handleChange = (event) => {
 
@@ -57,10 +55,9 @@ function Checkout() {
         }));
     };
 
-
-    // ==========================================
-    // CALCULATE TOTAL
-    // ==========================================
+    // =========================================================
+    // TOTAL
+    // =========================================================
 
     const total = cartItems.reduce(
         (sum, item) =>
@@ -70,52 +67,168 @@ function Checkout() {
         0
     );
 
+    // =========================================================
+    // GET TOKEN
+    // =========================================================
 
-    // ==========================================
+    const getToken = () => {
+
+        return (
+            localStorage.getItem("token") ||
+            localStorage.getItem("jwtToken") ||
+            localStorage.getItem("accessToken")
+        );
+    };
+
+    // =========================================================
+    // COUPON
+    // =========================================================
+
+    const handleApplyCoupon = () => {
+
+        const code = couponCode.trim();
+
+        if (!code) {
+            alert("Please enter a coupon code");
+            return;
+        }
+
+        setCouponCode(code.toUpperCase());
+        setCouponApplied(true);
+
+        alert(
+            `Coupon ${code.toUpperCase()} added. It will be validated during checkout.`
+        );
+    };
+
+    const handleRemoveCoupon = () => {
+
+        setCouponCode("");
+        setCouponApplied(false);
+    };
+
+    // =========================================================
+    // CREATE MOCK PAYMENT
+    // =========================================================
+
+    const createMockPayment = async (orderId) => {
+
+        const token = getToken();
+
+        if (!token) {
+            throw new Error(
+                "Authentication token not found. Please login again."
+            );
+        }
+
+        const response = await fetch(
+            "http://localhost:8081/api/payments",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+
+                body: JSON.stringify({
+                    orderId: orderId,
+                    gateway: "MOCK",
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+
+            throw new Error(
+                data?.message ||
+                "Failed to create payment"
+            );
+        }
+
+        return data.data;
+    };
+
+    // =========================================================
+    // VERIFY MOCK PAYMENT
+    // =========================================================
+
+    const verifyMockPayment = async (payment) => {
+
+        const token = getToken();
+
+        if (!token) {
+            throw new Error(
+                "Authentication token not found. Please login again."
+            );
+        }
+
+        const paymentOrderId =
+            payment.gatewayOrderId;
+
+        const paymentReference =
+            `MOCK_PAYMENT_${payment.id}`;
+
+        const signature =
+            `MOCK_SIGNATURE_${payment.id}`;
+
+        const params = new URLSearchParams();
+
+        params.append(
+            "paymentOrderId",
+            paymentOrderId
+        );
+
+        params.append(
+            "paymentReference",
+            paymentReference
+        );
+
+        params.append(
+            "signature",
+            signature
+        );
+
+        const response = await fetch(
+            `http://localhost:8081/api/payments/${payment.id}/verify?${params.toString()}`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+
+            throw new Error(
+                data?.message ||
+                "Payment verification failed"
+            );
+        }
+
+        return data.data;
+    };
+
+    // =========================================================
     // PLACE ORDER
-    // ==========================================
+    // =========================================================
 
     const handlePlaceOrder = async () => {
 
-        console.log(
-            "===== PLACING ORDER ====="
-        );
-
-        console.log(
-            "Cart Items:",
-            cartItems
-        );
-
-        console.log(
-            "Address:",
-            address
-        );
-
-        console.log(
-            "Total:",
-            total
-        );
-
-
-        // ==========================================
-        // CHECK CART
-        // ==========================================
-
         if (cartItems.length === 0) {
 
-            alert(
-                "Your cart is empty"
-            );
+            alert("Your cart is empty");
 
             navigate("/cart");
 
             return;
         }
-
-
-        // ==========================================
-        // CHECK ADDRESS
-        // ==========================================
 
         if (
             !address.name ||
@@ -133,182 +246,168 @@ function Checkout() {
             return;
         }
 
-
-        // ==========================================
-        // ORDER REQUEST
-        // ==========================================
-
-        const orderData = {
-
-            customerName:
-                address.name,
-
-            phone:
-                address.phone,
-
-            address:
-                address.address,
-
-            city:
-                address.city,
-
-            state:
-                address.state,
-
-            pincode:
-                address.pincode,
-        };
-
-
-        console.log(
-            "===== ORDER REQUEST ====="
-        );
-
-        console.log(
-            orderData
-        );
-
-
         try {
 
             setLoading(true);
 
+            // =================================================
+            // 1. CREATE SHOPSTACK ORDER
+            // =================================================
+
+            const orderData = {
+
+                customerName:
+                    address.name,
+
+                phone:
+                    address.phone,
+
+                address:
+                    address.address,
+
+                city:
+                    address.city,
+
+                state:
+                    address.state,
+
+                pincode:
+                    address.pincode,
+
+                couponCode:
+                    couponApplied
+                        ? couponCode
+                        : null,
+            };
 
             console.log(
-                "===== CALLING POST /api/orders ====="
+                "Creating ShopStack order...",
+                orderData
             );
 
-
-            const response =
-                await createOrder(
-                    orderData
-                );
-
-
-            console.log(
-                "===== ORDER API RESPONSE ====="
-            );
-
-            console.log(
-                response.data
-            );
-
-
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+            const orderResponse =
+                await createOrder(orderData);
 
             if (
-                response.data &&
-                response.data.success
+                !orderResponse.data ||
+                !orderResponse.data.success
             ) {
 
-                const order =
-                    response.data.data;
-
-
-                console.log(
-                    "ORDER CREATED:",
-                    order
-                );
-
-
-                // ==========================================
-                // SAVE ORDER + CART ITEMS
-                //
-                // Backend order response does not contain
-                // product image, so we preserve the
-                // cartItems here. cartItems contain:
-                //
-                // id
-                // name
-                // price
-                // quantity
-                // image
-                // category
-                // description
-                // ==========================================
-
-                const completeOrder = {
-                    ...order,
-                    items: cartItems,
-                };
-
-
-                localStorage.setItem(
-                    "latestOrder",
-                    JSON.stringify(
-                        completeOrder
-                    )
-                );
-
-
-                console.log(
-                    "LATEST ORDER WITH PRODUCT IMAGES SAVED:",
-                    completeOrder
-                );
-
-
-                // ==========================================
-                // CLEAR CART
-                // ==========================================
-
-                clearCart();
-
-
-                console.log(
-                    "CART CLEARED"
-                );
-
-
-                // ==========================================
-                // GO TO ORDER SUCCESS
-                // ==========================================
-
-                navigate(
-                    "/order-success"
-                );
-
-
-            } else {
-
-                alert(
-                    response.data?.message ||
-                    "Order could not be placed"
+                throw new Error(
+                    orderResponse.data?.message ||
+                    "Order could not be created"
                 );
             }
 
+            const order =
+                orderResponse.data.data;
+
+            console.log(
+                "Order Created:",
+                order
+            );
+
+            // =================================================
+            // 2. CREATE MOCK PAYMENT
+            // =================================================
+
+            console.log(
+                "Creating mock payment..."
+            );
+
+            const payment =
+                await createMockPayment(
+                    order.id
+                );
+
+            console.log(
+                "Payment Created:",
+                payment
+            );
+
+            // =================================================
+            // 3. SIMULATE PAYMENT
+            // =================================================
+
+            console.log(
+                "Processing mock payment..."
+            );
+
+            await new Promise(
+                (resolve) =>
+                    setTimeout(resolve, 800)
+            );
+
+            // =================================================
+            // 4. VERIFY PAYMENT
+            // =================================================
+
+            console.log(
+                "Verifying payment..."
+            );
+
+            const verifiedPayment =
+                await verifyMockPayment(
+                    payment
+                );
+
+            console.log(
+                "Payment Verified:",
+                verifiedPayment
+            );
+
+            // =================================================
+            // 5. SAVE COMPLETE ORDER
+            // =================================================
+
+            const completeOrder = {
+
+                ...order,
+
+                status: "CONFIRMED",
+
+                items: cartItems,
+
+                payment: verifiedPayment,
+
+                couponCode:
+                    couponApplied
+                        ? couponCode
+                        : null,
+            };
+
+            localStorage.setItem(
+                "latestOrder",
+                JSON.stringify(
+                    completeOrder
+                )
+            );
+
+            // =================================================
+            // 6. CLEAR CART
+            // =================================================
+
+            clearCart();
+
+            // =================================================
+            // 7. ORDER SUCCESS
+            // =================================================
+
+            navigate(
+                "/order-success"
+            );
 
         } catch (error) {
 
             console.error(
-                "===== ORDER CREATION ERROR ====="
-            );
-
-            console.error(
+                "Checkout Error:",
                 error
             );
 
-
-            if (error.response) {
-
-                console.error(
-                    "Status:",
-                    error.response.status
-                );
-
-                console.error(
-                    "Backend Response:",
-                    error.response.data
-                );
-            }
-
-
             alert(
-                error.response?.data?.message ||
-                "Failed to place order"
+                error.message ||
+                "Payment failed. Please try again."
             );
-
 
         } finally {
 
@@ -316,6 +415,9 @@ function Checkout() {
         }
     };
 
+    // =========================================================
+    // UI
+    // =========================================================
 
     return (
 
@@ -330,8 +432,6 @@ function Checkout() {
             }}
         >
 
-            {/* PAGE TITLE */}
-
             <Typography
                 variant="h4"
                 fontWeight="bold"
@@ -340,15 +440,12 @@ function Checkout() {
                 Checkout
             </Typography>
 
-
             <Grid
                 container
                 spacing={3}
             >
 
-                {/* ==========================================
-                    DELIVERY ADDRESS
-                ========================================== */}
+                {/* DELIVERY ADDRESS */}
 
                 <Grid
                     size={{
@@ -378,7 +475,6 @@ function Checkout() {
                                 Delivery Address
                             </Typography>
 
-
                             <TextField
                                 fullWidth
                                 label="Full Name"
@@ -393,7 +489,6 @@ function Checkout() {
                                 required
                             />
 
-
                             <TextField
                                 fullWidth
                                 label="Phone Number"
@@ -407,7 +502,6 @@ function Checkout() {
                                 margin="normal"
                                 required
                             />
-
 
                             <TextField
                                 fullWidth
@@ -425,7 +519,6 @@ function Checkout() {
                                 required
                             />
 
-
                             <TextField
                                 fullWidth
                                 label="City"
@@ -440,7 +533,6 @@ function Checkout() {
                                 required
                             />
 
-
                             <TextField
                                 fullWidth
                                 label="State"
@@ -454,7 +546,6 @@ function Checkout() {
                                 margin="normal"
                                 required
                             />
-
 
                             <TextField
                                 fullWidth
@@ -476,10 +567,7 @@ function Checkout() {
 
                 </Grid>
 
-
-                {/* ==========================================
-                    ORDER SUMMARY
-                ========================================== */}
+                {/* ORDER SUMMARY */}
 
                 <Grid
                     size={{
@@ -509,11 +597,6 @@ function Checkout() {
                                 Order Summary
                             </Typography>
 
-
-                            {/* ==========================================
-                                PRODUCTS
-                            ========================================== */}
-
                             {cartItems.map(
                                 (item) => (
 
@@ -535,10 +618,6 @@ function Checkout() {
                                                 p: 2,
                                             }}
                                         >
-
-                                            {/* ==================================
-                                                PRODUCT IMAGE
-                                            ================================== */}
 
                                             <Box
                                                 sx={{
@@ -580,11 +659,6 @@ function Checkout() {
 
                                             </Box>
 
-
-                                            {/* ==================================
-                                                PRODUCT DETAILS
-                                            ================================== */}
-
                                             <Box
                                                 sx={{
                                                     flexGrow: 1,
@@ -595,13 +669,9 @@ function Checkout() {
                                                 <Typography
                                                     variant="h6"
                                                     fontWeight="bold"
-                                                    sx={{
-                                                        mb: 1,
-                                                    }}
                                                 >
                                                     {item.name}
                                                 </Typography>
-
 
                                                 <Typography
                                                     variant="body2"
@@ -618,7 +688,6 @@ function Checkout() {
 
                                                     {item.quantity}
                                                 </Typography>
-
 
                                                 <Typography
                                                     sx={{
@@ -644,14 +713,8 @@ function Checkout() {
                                         </Box>
 
                                     </Card>
-
                                 )
                             )}
-
-
-                            {/* ==========================================
-                                DIVIDER
-                            ========================================== */}
 
                             <Divider
                                 sx={{
@@ -659,10 +722,99 @@ function Checkout() {
                                 }}
                             />
 
+                            {/* COUPON */}
 
-                            {/* ==========================================
-                                TOTAL
-                            ========================================== */}
+                            <Typography
+                                variant="h6"
+                                fontWeight="bold"
+                                mb={1}
+                            >
+                                Coupon Code
+                            </Typography>
+
+                            {!couponApplied ? (
+
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        gap: 1,
+                                        mb: 2,
+                                    }}
+                                >
+
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Enter coupon code"
+                                        value={couponCode}
+                                        onChange={(event) =>
+                                            setCouponCode(
+                                                event.target.value.toUpperCase()
+                                            )
+                                        }
+                                    />
+
+                                    <Button
+                                        variant="outlined"
+                                        onClick={
+                                            handleApplyCoupon
+                                        }
+                                        disabled={
+                                            loading
+                                        }
+                                    >
+                                        Apply
+                                    </Button>
+
+                                </Box>
+
+                            ) : (
+
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        mb: 2,
+                                        p: 1.5,
+                                        borderRadius: 2,
+                                        backgroundColor: "#e8f5e9",
+                                    }}
+                                >
+
+                                    <Typography
+                                        fontWeight="bold"
+                                        color="success.main"
+                                    >
+                                        {couponCode} applied
+                                    </Typography>
+
+                                    <Button
+                                        size="small"
+                                        color="error"
+                                        onClick={
+                                            handleRemoveCoupon
+                                        }
+                                        disabled={
+                                            loading
+                                        }
+                                    >
+                                        Remove
+                                    </Button>
+
+                                </Box>
+
+                            )}
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                mb={2}
+                            >
+                                Valid coupons will be verified when you place the order.
+                            </Typography>
+
+                            {/* TOTAL */}
 
                             <Box
                                 sx={{
@@ -681,7 +833,6 @@ function Checkout() {
                                     Total
                                 </Typography>
 
-
                                 <Typography
                                     variant="h5"
                                     fontWeight="bold"
@@ -696,11 +847,6 @@ function Checkout() {
 
                             </Box>
 
-
-                            {/* ==========================================
-                                PLACE ORDER
-                            ========================================== */}
-
                             <Button
                                 variant="contained"
                                 fullWidth
@@ -712,17 +858,14 @@ function Checkout() {
                                 onClick={
                                     handlePlaceOrder
                                 }
-                                disabled={loading}
+                                disabled={
+                                    loading
+                                }
                             >
                                 {loading
-                                    ? "Placing Order..."
-                                    : "Place Order"}
+                                    ? "Processing Payment..."
+                                    : "Pay Now"}
                             </Button>
-
-
-                            {/* ==========================================
-                                BACK TO CART
-                            ========================================== */}
 
                             <Button
                                 variant="outlined"
@@ -732,11 +875,11 @@ function Checkout() {
                                     height: 50,
                                 }}
                                 onClick={() =>
-                                    navigate(
-                                        "/cart"
-                                    )
+                                    navigate("/cart")
                                 }
-                                disabled={loading}
+                                disabled={
+                                    loading
+                                }
                             >
                                 Back to Cart
                             </Button>

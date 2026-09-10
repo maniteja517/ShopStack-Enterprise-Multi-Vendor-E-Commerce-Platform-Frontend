@@ -1,13 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-
+import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute({ children }) {
-
     const { user } = useAuth();
 
     const location = useLocation();
-
 
     // ==========================================
     // CHECK AUTH CONTEXT
@@ -16,7 +13,6 @@ function ProtectedRoute({ children }) {
     const hasUser =
         user !== null &&
         user !== undefined;
-
 
     // ==========================================
     // CHECK LOCAL STORAGE
@@ -31,7 +27,6 @@ function ProtectedRoute({ children }) {
     const role =
         localStorage.getItem("role");
 
-
     const isLoggedIn =
         hasUser ||
         (
@@ -40,14 +35,11 @@ function ProtectedRoute({ children }) {
             role
         );
 
-
     // ==========================================
     // USER NOT LOGGED IN
     // ==========================================
 
     if (!isLoggedIn) {
-
-        // Save the page the user wanted to visit.
         sessionStorage.setItem(
             "redirectAfterLogin",
             location.pathname
@@ -64,13 +56,11 @@ function ProtectedRoute({ children }) {
         );
     }
 
-
     // ==========================================
     // USER IS LOGGED IN
     // ==========================================
 
     return children;
 }
-
 
 export default ProtectedRoute;

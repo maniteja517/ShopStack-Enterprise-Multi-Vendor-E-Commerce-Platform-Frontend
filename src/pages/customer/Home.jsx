@@ -19,6 +19,7 @@ function Home() {
         p: 4,
       }}
     >
+      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -31,15 +32,25 @@ function Home() {
           ShopStack
         </Typography>
 
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={handleLogout}
-        >
-          Logout
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate("/profile")}
+          >
+            Profile
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
+        </Box>
       </Box>
 
+      {/* Welcome Card */}
       <Card
         sx={{
           maxWidth: 800,

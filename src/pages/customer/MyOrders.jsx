@@ -13,7 +13,11 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getMyOrders } from "../../api/orderService";
+import {
+    getMyOrders,
+    cancelOrder,
+    requestReturn,
+} from "../../api/orderService";
 
 import { products } from "../../data/products";
 
@@ -30,51 +34,52 @@ function MyOrders() {
     // FETCH MY ORDERS
     // ==========================================
 
+    const fetchOrders = async () => {
+
+        try {
+
+            console.log(
+                "===== FETCHING MY ORDERS ====="
+            );
+
+            const response =
+                await getMyOrders();
+
+            console.log(
+                "MY ORDERS RESPONSE:",
+                response.data
+            );
+
+            setOrders(
+                response.data?.data || []
+            );
+
+        } catch (error) {
+
+            console.error(
+                "MY ORDERS ERROR:",
+                error
+            );
+
+            console.error(
+                "BACKEND RESPONSE:",
+                error.response?.data
+            );
+
+            alert(
+                error.response?.data?.message ||
+                "Failed to load orders"
+            );
+
+        } finally {
+
+            setLoading(false);
+
+        }
+    };
+
+
     useEffect(() => {
-
-        const fetchOrders = async () => {
-
-            try {
-
-                console.log(
-                    "===== FETCHING MY ORDERS ====="
-                );
-
-                const response =
-                    await getMyOrders();
-
-                console.log(
-                    "My Orders API Response:",
-                    response.data
-                );
-
-                setOrders(
-                    response.data.data || []
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "MY ORDERS ERROR:",
-                    error
-                );
-
-                console.error(
-                    "Backend response:",
-                    error.response?.data
-                );
-
-                alert(
-                    error.response?.data?.message ||
-                    "Failed to load orders"
-                );
-
-            } finally {
-
-                setLoading(false);
-
-            }
-        };
 
         fetchOrders();
 
@@ -82,27 +87,150 @@ function MyOrders() {
 
 
     // ==========================================
-    // LOADING
+    // PRODUCT IMAGE
     // ==========================================
 
-    if (loading) {
+    const getProductImage = (
+        productId,
+        productName
+    ) => {
 
-        return (
-            <Box
-                sx={{
-                    minHeight: "70vh",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
+        const product =
+            products.find(
+                (item) =>
+                    item.id ===
+                    Number(productId)
+            );
 
-                <CircularProgress />
+        if (product?.image) {
+            return product.image;
+        }
 
-            </Box>
-        );
+        const name =
+            (
+                productName || ""
+            )
+                .toLowerCase()
+                .trim();
 
-    }
+        if (name.includes("iphone")) {
+            return "/products/iphone.jpg";
+        }
+
+        if (name.includes("samsung")) {
+            return "/products/samsung.jpg";
+        }
+
+        if (
+            name.includes(
+                "wireless headphones"
+            )
+        ) {
+            return "/products/headphones.jpg";
+        }
+
+        if (
+            name.includes(
+                "bluetooth earbuds"
+            )
+        ) {
+            return "/products/earbuds.jpg";
+        }
+
+        if (
+            name.includes(
+                "wired earphones"
+            )
+        ) {
+            return "/products/wired-earphones.jpg";
+        }
+
+        if (
+            name.includes(
+                "bluetooth speaker"
+            )
+        ) {
+            return "/products/speaker.jpg";
+        }
+
+        if (
+            name.includes(
+                "smart watch"
+            )
+        ) {
+            return "/products/smartwatch.jpg";
+        }
+
+        if (
+            name.includes(
+                "fitness band"
+            )
+        ) {
+            return "/products/fitness-band.jpg";
+        }
+
+        if (
+            name.includes(
+                "hp laptop"
+            )
+        ) {
+            return "/products/hp-laptop.jpg";
+        }
+
+        if (
+            name.includes("macbook")
+        ) {
+            return "/products/macbook.jpg";
+        }
+
+        if (
+            name.includes("power bank")
+        ) {
+            return "/products/powerbank.jpg";
+        }
+
+        if (
+            name.includes("charger")
+        ) {
+            return "/products/charger.jpg";
+        }
+
+        if (
+            name.includes("backpack")
+        ) {
+            return "/products/backpack.jpg";
+        }
+
+        if (
+            name.includes("air fryer")
+        ) {
+            return "/products/air-fryer.jpg";
+        }
+
+        if (
+            name.includes("kettle")
+        ) {
+            return "/products/kettle.jpg";
+        }
+
+        if (
+            name.includes(
+                "gaming controller"
+            )
+        ) {
+            return "/products/gaming-controller.jpg";
+        }
+
+        if (
+            name.includes(
+                "gaming mouse"
+            )
+        ) {
+            return "/products/gaming-mouse.jpg";
+        }
+
+        return "";
+    };
 
 
     // ==========================================
@@ -118,6 +246,9 @@ function MyOrders() {
 
             case "CONFIRMED":
                 return "primary";
+
+            case "PROCESSING":
+                return "secondary";
 
             case "SHIPPED":
                 return "warning";
@@ -140,12 +271,144 @@ function MyOrders() {
     };
 
 
-    return (
+    // ==========================================
+    // CANCEL ORDER
+    // ==========================================
 
+    const handleCancelOrder = async (
+        orderId
+    ) => {
+
+        const confirmed =
+            window.confirm(
+                "Are you sure you want to cancel this order?"
+            );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+
+            const response =
+                await cancelOrder(
+                    orderId
+                );
+
+            console.log(
+                "CANCEL ORDER RESPONSE:",
+                response.data
+            );
+
+            alert(
+                response.data?.message ||
+                "Order cancelled successfully"
+            );
+
+            await fetchOrders();
+
+        } catch (error) {
+
+            console.error(
+                "CANCEL ORDER ERROR:",
+                error
+            );
+
+            alert(
+                error.response?.data?.message ||
+                "Failed to cancel order"
+            );
+        }
+    };
+
+
+    // ==========================================
+    // REQUEST RETURN
+    // ==========================================
+
+    const handleReturnOrder = async (
+        orderId
+    ) => {
+
+        const confirmed =
+            window.confirm(
+                "Are you sure you want to request a return for this order?"
+            );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+
+            const response =
+                await requestReturn(
+                    orderId
+                );
+
+            console.log(
+                "RETURN ORDER RESPONSE:",
+                response.data
+            );
+
+            alert(
+                response.data?.message ||
+                "Return request submitted successfully"
+            );
+
+            await fetchOrders();
+
+        } catch (error) {
+
+            console.error(
+                "RETURN ORDER ERROR:",
+                error
+            );
+
+            console.error(
+                "BACKEND RESPONSE:",
+                error.response?.data
+            );
+
+            alert(
+                error.response?.data?.message ||
+                "Failed to request return"
+            );
+        }
+    };
+
+
+    // ==========================================
+    // LOADING
+    // ==========================================
+
+    if (loading) {
+
+        return (
+            <Box
+                sx={{
+                    minHeight: "70vh",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+
+    // ==========================================
+    // UI
+    // ==========================================
+
+    return (
         <Box
             sx={{
                 minHeight: "100vh",
-                backgroundColor: "#f4f6f8",
+                backgroundColor:
+                    "#f4f6f8",
                 p: {
                     xs: 2,
                     md: 4,
@@ -153,9 +416,7 @@ function MyOrders() {
             }}
         >
 
-            {/* ==================================
-                PAGE TITLE
-            ================================== */}
+            {/* PAGE TITLE */}
 
             <Typography
                 variant="h4"
@@ -166,9 +427,7 @@ function MyOrders() {
             </Typography>
 
 
-            {/* ==================================
-                NO ORDERS
-            ================================== */}
+            {/* NO ORDERS */}
 
             {orders.length === 0 ? (
 
@@ -183,11 +442,12 @@ function MyOrders() {
                             You have no orders yet.
                         </Typography>
 
-
                         <Button
                             variant="contained"
                             onClick={() =>
-                                navigate("/products")
+                                navigate(
+                                    "/products"
+                                )
                             }
                         >
                             Start Shopping
@@ -199,10 +459,6 @@ function MyOrders() {
 
             ) : (
 
-                /* ==================================
-                   ORDERS
-                ================================== */
-
                 orders.map((order) => (
 
                     <Card
@@ -210,22 +466,13 @@ function MyOrders() {
                         sx={{
                             mb: 3,
                             borderRadius: 3,
-                            boxShadow: 2,
+                            overflow: "hidden",
                         }}
                     >
 
-                        <CardContent
-                            sx={{
-                                p: {
-                                    xs: 2,
-                                    md: 3,
-                                },
-                            }}
-                        >
+                        <CardContent>
 
-                            {/* ==================================
-                                ORDER HEADER
-                            ================================== */}
+                            {/* ORDER HEADER */}
 
                             <Box
                                 sx={{
@@ -243,36 +490,30 @@ function MyOrders() {
                                 <Box>
 
                                     <Typography
-                                        variant="h5"
+                                        variant="h6"
                                         fontWeight="bold"
                                     >
                                         Order #{order.id}
                                     </Typography>
 
-
                                     <Typography
+                                        variant="body2"
                                         color="text.secondary"
-                                        sx={{
-                                            mt: 0.5,
-                                        }}
                                     >
                                         Ordered on:{" "}
                                         {order.createdAt
                                             ? new Date(
-                                                order.createdAt
-                                            ).toLocaleString()
+                                                  order.createdAt
+                                              ).toLocaleString()
                                             : "N/A"}
                                     </Typography>
 
                                 </Box>
 
 
-                                {/* STATUS */}
-
                                 <Chip
                                     label={
-                                        order.status ||
-                                        "PLACED"
+                                        order.status
                                     }
                                     color={getStatusColor(
                                         order.status
@@ -293,131 +534,96 @@ function MyOrders() {
                             />
 
 
-                            {/* ==================================
-                                ORDER ITEMS
-                            ================================== */}
+                            {/* ORDER ITEMS */}
 
-                            {order.items?.map(
+                            {(
+                                order.items ||
+                                []
+                            ).map(
                                 (
                                     item,
                                     index
                                 ) => {
 
-                                    /*
-                                     * Find the product from
-                                     * local products data.
-                                     *
-                                     * Backend OrderItemResponse
-                                     * contains productId.
-                                     */
-
-                                    const product =
-                                        products.find(
-                                            (product) =>
-                                                product.id ===
-                                                Number(
-                                                    item.productId
-                                                )
-                                        );
-
-
-                                    const productImage =
-                                        product?.image ||
-                                        item.image;
-
+                                    const productId =
+                                        item.productId ||
+                                        item.product?.id;
 
                                     const productName =
-                                        product?.name ||
-                                        item.productName;
+                                        item.productName ||
+                                        item.product?.name ||
+                                        item.name ||
+                                        "Product";
 
+                                    const image =
+                                        getProductImage(
+                                            productId,
+                                            productName
+                                        );
+
+                                    const quantity =
+                                        Number(
+                                            item.quantity ||
+                                            1
+                                        );
+
+                                    const itemPrice =
+                                        Number(
+                                            item.price ??
+                                            item.unitPrice ??
+                                            item.finalPrice ??
+                                            0
+                                        );
+
+                                    const subtotal =
+                                        Number(
+                                            item.subtotal ??
+                                            item.totalPrice ??
+                                            itemPrice *
+                                                quantity
+                                        );
 
                                     return (
-
                                         <Box
                                             key={
-                                                item.productId ||
+                                                item.id ||
                                                 index
                                             }
                                             sx={{
                                                 display:
                                                     "flex",
+                                                gap: 2,
                                                 alignItems:
                                                     "center",
-                                                gap: 3,
                                                 mb: 2,
-                                                p: 2,
-                                                border:
-                                                    "1px solid #e0e0e0",
-                                                borderRadius: 2,
-                                                backgroundColor:
-                                                    "#fff",
+                                                p: 1,
                                             }}
                                         >
 
-                                            {/* ==================================
-                                                PRODUCT IMAGE
-                                            ================================== */}
+                                            {/* IMAGE */}
 
-                                            <Box
-                                                sx={{
-                                                    width: 110,
-                                                    height: 110,
-                                                    flexShrink: 0,
-                                                    border:
-                                                        "1px solid #ddd",
-                                                    borderRadius: 2,
-                                                    overflow:
-                                                        "hidden",
-                                                    display:
-                                                        "flex",
-                                                    alignItems:
-                                                        "center",
-                                                    justifyContent:
-                                                        "center",
-                                                    backgroundColor:
-                                                        "#fff",
-                                                }}
-                                            >
-
-                                                {productImage ? (
-
-                                                    <CardMedia
-                                                        component="img"
-                                                        image={
-                                                            productImage
-                                                        }
-                                                        alt={
-                                                            productName
-                                                        }
-                                                        sx={{
-                                                            width:
-                                                                "100%",
-                                                            height:
-                                                                "100%",
-                                                            objectFit:
-                                                                "contain",
-                                                        }}
-                                                    />
-
-                                                ) : (
-
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                        textAlign="center"
-                                                    >
-                                                        Image
-                                                        unavailable
-                                                    </Typography>
-
-                                                )}
-
-                                            </Box>
+                                            {image && (
+                                                <CardMedia
+                                                    component="img"
+                                                    image={
+                                                        image
+                                                    }
+                                                    alt={
+                                                        productName
+                                                    }
+                                                    sx={{
+                                                        width: 100,
+                                                        height: 100,
+                                                        objectFit:
+                                                            "cover",
+                                                        borderRadius:
+                                                            2,
+                                                    }}
+                                                />
+                                            )}
 
 
-                                            {/* ==================================
-                                                PRODUCT INFORMATION
-                                            ================================== */}
+                                            {/* DETAILS */}
 
                                             <Box
                                                 sx={{
@@ -434,42 +640,23 @@ function MyOrders() {
                                                     }
                                                 </Typography>
 
-
                                                 <Typography
-                                                    color="text.secondary"
-                                                    sx={{
-                                                        mt: 0.5,
-                                                    }}
+                                                    variant="body1"
                                                 >
                                                     ₹
-                                                    {Number(
-                                                        item.price
-                                                    ).toLocaleString(
+                                                    {itemPrice.toLocaleString(
                                                         "en-IN"
                                                     )}{" "}
                                                     ×{" "}
-                                                    {
-                                                        item.quantity
-                                                    }
+                                                    {quantity}
                                                 </Typography>
 
-
                                                 <Typography
-                                                    fontWeight="bold"
-                                                    sx={{
-                                                        mt: 1,
-                                                    }}
+                                                    variant="body2"
+                                                    color="text.secondary"
                                                 >
                                                     Subtotal: ₹
-                                                    {Number(
-                                                        item.subtotal ??
-                                                        Number(
-                                                            item.price
-                                                        ) *
-                                                        Number(
-                                                            item.quantity
-                                                        )
-                                                    ).toLocaleString(
+                                                    {subtotal.toLocaleString(
                                                         "en-IN"
                                                     )}
                                                 </Typography>
@@ -477,9 +664,7 @@ function MyOrders() {
                                             </Box>
 
                                         </Box>
-
                                     );
-
                                 }
                             )}
 
@@ -491,37 +676,34 @@ function MyOrders() {
                             />
 
 
-                            {/* ==================================
-                                ORDER FOOTER
-                            ================================== */}
+                            {/* ORDER TOTAL */}
+
+                            <Typography
+                                variant="h6"
+                                fontWeight="bold"
+                            >
+                                Total: ₹
+                                {Number(
+                                    order.totalAmount ??
+                                    order.total ??
+                                    0
+                                ).toLocaleString(
+                                    "en-IN"
+                                )}
+                            </Typography>
+
+
+                            {/* ACTIONS */}
 
                             <Box
                                 sx={{
                                     display: "flex",
-                                    justifyContent:
-                                        "space-between",
-                                    alignItems:
-                                        "center",
+                                    gap: 2,
                                     flexWrap:
                                         "wrap",
-                                    gap: 2,
+                                    mt: 3,
                                 }}
                             >
-
-                                <Typography
-                                    variant="h5"
-                                    fontWeight="bold"
-                                >
-                                    Total: ₹
-                                    {Number(
-                                        order.totalAmount ??
-                                        order.total ??
-                                        0
-                                    ).toLocaleString(
-                                        "en-IN"
-                                    )}
-                                </Typography>
-
 
                                 <Button
                                     variant="outlined"
@@ -534,6 +716,63 @@ function MyOrders() {
                                     View Details
                                 </Button>
 
+
+                                {/* CANCEL */}
+
+                                {(
+                                    order.status ===
+                                        "PLACED" ||
+                                    order.status ===
+                                        "CONFIRMED"
+                                ) && (
+
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        onClick={() =>
+                                            handleCancelOrder(
+                                                order.id
+                                            )
+                                        }
+                                    >
+                                        Cancel Order
+                                    </Button>
+
+                                )}
+
+
+                                {/* RETURN */}
+
+                                {order.status ===
+                                    "DELIVERED" && (
+
+                                    <Button
+                                        variant="contained"
+                                        color="warning"
+                                        onClick={() =>
+                                            handleReturnOrder(
+                                                order.id
+                                            )
+                                        }
+                                    >
+                                        Request Return
+                                    </Button>
+
+                                )}
+
+
+                                {/* REFUNDED */}
+
+                                {order.status ===
+                                    "REFUNDED" && (
+
+                                    <Chip
+                                        label="Refund Completed"
+                                        color="success"
+                                    />
+
+                                )}
+
                             </Box>
 
                         </CardContent>
@@ -541,11 +780,11 @@ function MyOrders() {
                     </Card>
 
                 ))
-
             )}
 
         </Box>
     );
 }
+
 
 export default MyOrders;
