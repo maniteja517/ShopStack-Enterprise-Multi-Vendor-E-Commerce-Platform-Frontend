@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
     Box,
     Button,
@@ -15,7 +17,9 @@ import {
 
 import { useCart } from "../../context/CartContext";
 
-import { products } from "../../data/products";
+import axios from "axios";
+
+const API_URL = "http://localhost:8081/api/products";
 
 
 function ProductDetails() {
@@ -29,12 +33,236 @@ function ProductDetails() {
     } = useCart();
 
 
-    const product =
-        products.find(
-            (item) =>
-                item.id === Number(id)
-        );
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
 
+    // ==========================================
+    // PRODUCT IMAGE
+    // Uses images from public/products
+    // ==========================================
+
+    const getProductImage = (productName) => {
+        const name = (productName || "").toLowerCase().trim();
+
+        if (name.includes("iphone")) {
+            return "/products/iphone.jpg";
+        }
+
+        if (name.includes("samsung")) {
+            return "/products/samsung.jpg";
+        }
+
+        if (name.includes("wireless headphones")) {
+            return "/products/headphones.jpg";
+        }
+
+        if (name.includes("bluetooth earbuds")) {
+            return "/products/earbuds.jpg";
+        }
+
+        if (name.includes("wired earphones")) {
+            return "/products/wired-earphones.jpg";
+        }
+
+        if (name.includes("bluetooth speaker")) {
+            return "/products/speaker.jpg";
+        }
+
+        if (name.includes("smart watch")) {
+            return "/products/smartwatch.jpg";
+        }
+
+        if (name.includes("fitness band")) {
+            return "/products/fitness-band.jpg";
+        }
+
+        if (name.includes("hp laptop")) {
+            return "/products/hp-laptop.jpg";
+        }
+
+        if (name.includes("macbook")) {
+            return "/products/macbook.jpg";
+        }
+
+        if (name.includes("power bank")) {
+            return "/products/powerbank.jpg";
+        }
+
+        if (name.includes("usb-c charger")) {
+            return "/products/charger.jpg";
+        }
+
+        if (name.includes("laptop backpack")) {
+            return "/products/backpack.jpg";
+        }
+
+        if (name.includes("air fryer")) {
+            return "/products/air-fryer.jpg";
+        }
+
+        if (name.includes("electric kettle")) {
+            return "/products/kettle.jpg";
+        }
+
+        if (name.includes("gaming controller")) {
+            return "/products/gaming-controller.jpg";
+        }
+
+        if (name.includes("gaming mouse")) {
+            return "/products/gaming-mouse.jpg";
+        }
+
+        if (name.includes("testing ring")) {
+            return "/products/testing_ring.jpg";
+        }
+
+        return "";
+    };
+
+    // ==========================================
+    // LOAD PRODUCT FROM BACKEND
+    // ==========================================
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                setLoading(true);
+                setErrorMessage("");
+
+                const token =
+                    localStorage.getItem("token") ||
+                    localStorage.getItem("jwtToken") ||
+                    localStorage.getItem("accessToken");
+
+                if (!token) {
+                    navigate("/login");
+                    return;
+                }
+
+                const response = await axios.get(
+                    `${API_URL}/${id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+
+                console.log("PRODUCT DETAILS API RESPONSE:", response.data);
+
+                let backendProduct = null;
+
+                if (response.data?.data) {
+                    backendProduct = response.data.data;
+                } else if (response.data?.product) {
+                    backendProduct = response.data.product;
+                } else if (response.data?.id) {
+                    backendProduct = response.data;
+                }
+
+                if (!backendProduct) {
+                    throw new Error("Product not found");
+                }
+
+                const productName =
+                    backendProduct.name ||
+                    backendProduct.productName ||
+                    "Product";
+
+                const price =
+                    Number(backendProduct.price) || 0;
+
+                const discountPercentage =
+                    Number(
+                        backendProduct.discountPercentage ??
+                        backendProduct.discount ??
+                        0
+                    );
+
+                const calculatedFinalPrice =
+                    price -
+                    (price * discountPercentage) / 100;
+
+                const finalPrice =
+                    backendProduct.finalPrice !== undefined &&
+                    backendProduct.finalPrice !== null
+                        ? Number(backendProduct.finalPrice)
+                        : calculatedFinalPrice;
+
+                const formattedProduct = {
+                    ...backendProduct,
+                    id: Number(backendProduct.id),
+                    name: productName,
+                    description: backendProduct.description || "",
+                    price,
+                    discountPercentage,
+                    finalPrice,
+                    category:
+                        backendProduct.category?.name ||
+                        backendProduct.categoryName ||
+                        backendProduct.category ||
+                        "Other",
+                    stock: Number(
+                        backendProduct.stock ??
+                        backendProduct.stockQuantity ??
+                        0
+                    ),
+                    image:
+                        backendProduct.image ||
+                        backendProduct.imageUrl ||
+                        getProductImage(productName),
+                };
+
+                setProduct(formattedProduct);
+            } catch (error) {
+                console.error("PRODUCT DETAILS ERROR:", error);
+                console.error("STATUS:", error.response?.status);
+                console.error("BACKEND RESPONSE:", error.response?.data);
+
+                if (
+                    error.response?.status === 401 ||
+                    error.response?.status === 403
+                ) {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("jwtToken");
+                    localStorage.removeItem("accessToken");
+                    navigate("/login");
+                    return;
+                }
+
+                setErrorMessage(
+                    error.response?.data?.message ||
+                    "Product not found"
+                );
+                setProduct(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProduct();
+    }, [id, navigate]);
+
+    // ==========================================
+    // LOADING
+    // ==========================================
+
+    if (loading) {
+        return (
+            <Box
+                sx={{
+                    minHeight: "100vh",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <Typography>Loading product...</Typography>
+            </Box>
+        );
+    }
 
     // ==========================================
     // PRODUCT NOT FOUND
@@ -49,7 +277,7 @@ function ProductDetails() {
                     variant="h5"
                     gutterBottom
                 >
-                    Product not found
+                    {errorMessage || "Product not found"}
                 </Typography>
 
 

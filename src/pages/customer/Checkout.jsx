@@ -10,20 +10,27 @@ import {
     Typography,
 } from "@mui/material";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useCart } from "../../context/CartContext";
 import { createOrder } from "../../api/orderService";
 
 function Checkout() {
-
     const navigate = useNavigate();
 
     const {
         cartItems,
         clearCart,
     } = useCart();
+
+    // Prevent checkout when the cart is empty.
+    // This also protects direct navigation to /checkout.
+    useEffect(() => {
+        if (cartItems.length === 0) {
+            navigate("/cart");
+        }
+    }, [cartItems.length, navigate]);
 
     const [address, setAddress] = useState({
         name: "",
@@ -43,7 +50,6 @@ function Checkout() {
     // =========================================================
 
     const handleChange = (event) => {
-
         const {
             name,
             value,
@@ -72,7 +78,6 @@ function Checkout() {
     // =========================================================
 
     const getToken = () => {
-
         return (
             localStorage.getItem("token") ||
             localStorage.getItem("jwtToken") ||
@@ -85,7 +90,6 @@ function Checkout() {
     // =========================================================
 
     const handleApplyCoupon = () => {
-
         const code = couponCode.trim();
 
         if (!code) {
@@ -102,17 +106,15 @@ function Checkout() {
     };
 
     const handleRemoveCoupon = () => {
-
         setCouponCode("");
         setCouponApplied(false);
     };
 
     // =========================================================
-    // CREATE MOCK PAYMENT
+    // CREATE RAZORPAY PAYMENT
     // =========================================================
 
-    const createMockPayment = async (orderId) => {
-
+    const createRazorpayPayment = async (orderId) => {
         const token = getToken();
 
         if (!token) {
@@ -133,7 +135,7 @@ function Checkout() {
 
                 body: JSON.stringify({
                     orderId: orderId,
-                    gateway: "MOCK",
+                    gateway: "RAZORPAY",
                 }),
             }
         );
@@ -141,10 +143,9 @@ function Checkout() {
         const data = await response.json();
 
         if (!response.ok || !data?.success) {
-
             throw new Error(
                 data?.message ||
-                "Failed to create payment"
+                "Failed to create Razorpay payment"
             );
         }
 
@@ -152,11 +153,15 @@ function Checkout() {
     };
 
     // =========================================================
-    // VERIFY MOCK PAYMENT
+    // VERIFY RAZORPAY PAYMENT
     // =========================================================
 
-    const verifyMockPayment = async (payment) => {
-
+    const verifyRazorpayPayment = async ({
+        payment,
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+    }) => {
         const token = getToken();
 
         if (!token) {
@@ -165,30 +170,21 @@ function Checkout() {
             );
         }
 
-        const paymentOrderId =
-            payment.gatewayOrderId;
-
-        const paymentReference =
-            `MOCK_PAYMENT_${payment.id}`;
-
-        const signature =
-            `MOCK_SIGNATURE_${payment.id}`;
-
         const params = new URLSearchParams();
 
         params.append(
             "paymentOrderId",
-            paymentOrderId
+            razorpayOrderId
         );
 
         params.append(
             "paymentReference",
-            paymentReference
+            razorpayPaymentId
         );
 
         params.append(
             "signature",
-            signature
+            razorpaySignature
         );
 
         const response = await fetch(
@@ -205,7 +201,6 @@ function Checkout() {
         const data = await response.json();
 
         if (!response.ok || !data?.success) {
-
             throw new Error(
                 data?.message ||
                 "Payment verification failed"
@@ -216,17 +211,167 @@ function Checkout() {
     };
 
     // =========================================================
+    // OPEN RAZORPAY CHECKOUT
+    // =========================================================
+
+    const openRazorpayCheckout = ({
+        payment,
+        order,
+        onSuccess,
+        onFailure,
+    }) => {
+        if (!window.Razorpay) {
+            onFailure(
+                new Error(
+                    "Razorpay Checkout failed to load. Please refresh the page and try again."
+                )
+            );
+            return;
+        }
+
+        if (!payment?.razorpayKeyId) {
+            onFailure(
+                new Error(
+                    "Razorpay key is missing from the server response."
+                )
+            );
+            return;
+        }
+
+        if (!payment?.gatewayOrderId) {
+            onFailure(
+                new Error(
+                    "Razorpay order ID is missing from the server response."
+                )
+            );
+            return;
+        }
+
+        const options = {
+            key: payment.razorpayKeyId,
+
+            amount: Math.round(
+                Number(payment.amount) * 100
+            ),
+
+            currency: payment.currency || "INR",
+
+            name: "ShopStack",
+
+            description: `Payment for Order #${order.id}`,
+
+            order_id: payment.gatewayOrderId,
+
+            handler: async function (response) {
+                try {
+                    console.log(
+                        "Razorpay payment successful:",
+                        response
+                    );
+
+                    const verifiedPayment =
+                        await verifyRazorpayPayment({
+                            payment,
+                            razorpayOrderId:
+                                response.razorpay_order_id,
+                            razorpayPaymentId:
+                                response.razorpay_payment_id,
+                            razorpaySignature:
+                                response.razorpay_signature,
+                        });
+
+                    console.log(
+                        "Razorpay payment verified:",
+                        verifiedPayment
+                    );
+
+                    await onSuccess(
+                        verifiedPayment
+                    );
+                } catch (error) {
+                    console.error(
+                        "Razorpay verification error:",
+                        error
+                    );
+
+                    onFailure(error);
+                }
+            },
+
+            prefill: {
+                name: address.name,
+                contact: address.phone,
+            },
+
+            notes: {
+                shopstackOrderId:
+                    String(order.id),
+            },
+
+            theme: {
+                color: "#1976d2",
+            },
+
+            modal: {
+                ondismiss: function () {
+                    console.log(
+                        "Razorpay checkout dismissed by customer."
+                    );
+
+                    onFailure(
+                        new Error(
+                            "Payment was cancelled. Your order has not been confirmed."
+                        )
+                    );
+                },
+            },
+        };
+
+        try {
+            const razorpay =
+                new window.Razorpay(options);
+
+            razorpay.on(
+                "payment.failed",
+                function (response) {
+                    console.error(
+                        "Razorpay payment failed:",
+                        response
+                    );
+
+                    const description =
+                        response?.error?.description ||
+                        "Razorpay payment failed. Please try again.";
+
+                    onFailure(
+                        new Error(description)
+                    );
+                }
+            );
+
+            razorpay.open();
+        } catch (error) {
+            console.error(
+                "Unable to open Razorpay:",
+                error
+            );
+
+            onFailure(
+                new Error(
+                    "Unable to open Razorpay Checkout. Please try again."
+                )
+            );
+        }
+    };
+
+    // =========================================================
     // PLACE ORDER
     // =========================================================
 
     const handlePlaceOrder = async () => {
-
         if (cartItems.length === 0) {
-
             alert("Your cart is empty");
-
             navigate("/cart");
-
             return;
         }
 
@@ -238,16 +383,13 @@ function Checkout() {
             !address.state ||
             !address.pincode
         ) {
-
             alert(
                 "Please fill all delivery details"
             );
-
             return;
         }
 
         try {
-
             setLoading(true);
 
             // =================================================
@@ -255,7 +397,6 @@ function Checkout() {
             // =================================================
 
             const orderData = {
-
                 customerName:
                     address.name,
 
@@ -292,7 +433,6 @@ function Checkout() {
                 !orderResponse.data ||
                 !orderResponse.data.success
             ) {
-
                 throw new Error(
                     orderResponse.data?.message ||
                     "Order could not be created"
@@ -308,97 +448,129 @@ function Checkout() {
             );
 
             // =================================================
-            // 2. CREATE MOCK PAYMENT
+            // 2. CREATE RAZORPAY PAYMENT
             // =================================================
 
             console.log(
-                "Creating mock payment..."
+                "Creating Razorpay payment..."
             );
 
             const payment =
-                await createMockPayment(
+                await createRazorpayPayment(
                     order.id
                 );
 
             console.log(
-                "Payment Created:",
+                "Razorpay Payment Created:",
                 payment
             );
 
-            // =================================================
-            // 3. SIMULATE PAYMENT
-            // =================================================
-
-            console.log(
-                "Processing mock payment..."
-            );
-
-            await new Promise(
-                (resolve) =>
-                    setTimeout(resolve, 800)
-            );
+            // Stop the loading state while Razorpay
+            // Checkout is open.
+            setLoading(false);
 
             // =================================================
-            // 4. VERIFY PAYMENT
+            // 3. OPEN RAZORPAY CHECKOUT
             // =================================================
 
             console.log(
-                "Verifying payment..."
+                "Opening Razorpay Checkout..."
             );
 
-            const verifiedPayment =
-                await verifyMockPayment(
-                    payment
-                );
+            openRazorpayCheckout({
+                payment,
+                order,
 
-            console.log(
-                "Payment Verified:",
-                verifiedPayment
-            );
+                // =================================================
+                // 4. PAYMENT SUCCESS + VERIFICATION
+                // =================================================
 
-            // =================================================
-            // 5. SAVE COMPLETE ORDER
-            // =================================================
+                onSuccess: async (
+                    verifiedPayment
+                ) => {
+                    try {
+                        setLoading(true);
 
-            const completeOrder = {
+                        console.log(
+                            "Payment Verified:",
+                            verifiedPayment
+                        );
 
-                ...order,
+                        // =================================================
+                        // 5. SAVE COMPLETE ORDER
+                        // =================================================
 
-                status: "CONFIRMED",
+                        const completeOrder = {
+                            ...order,
 
-                items: cartItems,
+                            status: "CONFIRMED",
 
-                payment: verifiedPayment,
+                            items: cartItems,
 
-                couponCode:
-                    couponApplied
-                        ? couponCode
-                        : null,
-            };
+                            payment:
+                                verifiedPayment,
 
-            localStorage.setItem(
-                "latestOrder",
-                JSON.stringify(
-                    completeOrder
-                )
-            );
+                            couponCode:
+                                couponApplied
+                                    ? couponCode
+                                    : null,
+                        };
 
-            // =================================================
-            // 6. CLEAR CART
-            // =================================================
+                        localStorage.setItem(
+                            "latestOrder",
+                            JSON.stringify(
+                                completeOrder
+                            )
+                        );
 
-            clearCart();
+                        // =================================================
+                        // 6. CLEAR CART
+                        // =================================================
 
-            // =================================================
-            // 7. ORDER SUCCESS
-            // =================================================
+                        clearCart();
 
-            navigate(
-                "/order-success"
-            );
+                        // =================================================
+                        // 7. ORDER SUCCESS
+                        // =================================================
+
+                        navigate(
+                            "/order-success"
+                        );
+                    } catch (error) {
+                        console.error(
+                            "Post-payment processing error:",
+                            error
+                        );
+
+                        alert(
+                            error.message ||
+                            "Payment was successful, but we could not complete the order processing."
+                        );
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+
+                // =================================================
+                // PAYMENT FAILURE / CANCEL
+                // =================================================
+
+                onFailure: (error) => {
+                    console.error(
+                        "Razorpay Checkout Error:",
+                        error
+                    );
+
+                    setLoading(false);
+
+                    alert(
+                        error.message ||
+                        "Payment failed or was cancelled. Please try again."
+                    );
+                },
+            });
 
         } catch (error) {
-
             console.error(
                 "Checkout Error:",
                 error
@@ -409,8 +581,6 @@ function Checkout() {
                 "Payment failed. Please try again."
             );
 
-        } finally {
-
             setLoading(false);
         }
     };
@@ -420,7 +590,6 @@ function Checkout() {
     // =========================================================
 
     return (
-
         <Box
             sx={{
                 minHeight: "100vh",
@@ -431,7 +600,6 @@ function Checkout() {
                 },
             }}
         >
-
             <Typography
                 variant="h4"
                 fontWeight="bold"

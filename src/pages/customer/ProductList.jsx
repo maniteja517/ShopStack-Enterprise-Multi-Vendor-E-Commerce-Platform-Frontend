@@ -120,6 +120,10 @@ function ProductList() {
             return "/products/gaming-mouse.jpg";
         }
 
+        if (name.includes("testing ring")) {
+            return "/products/testing_ring.jpg";
+        }
+
         return "";
     };
 

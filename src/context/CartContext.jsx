@@ -7,8 +7,6 @@ import {
 
 import axios from "axios";
 
-import { products } from "../data/products";
-
 
 const CartContext = createContext(null);
 
@@ -16,9 +14,150 @@ const CartContext = createContext(null);
 const API_URL = "http://localhost:8081/api/cart";
 
 
+// ==========================================
+// PRODUCT IMAGE
+// Uses images already present in public/products
+// ==========================================
+const getProductImage = (product) => {
+
+    // If backend already provides an image,
+    // use it first.
+    if (product?.image) {
+        return product.image;
+    }
+
+    if (product?.imageUrl) {
+        return product.imageUrl;
+    }
+
+
+    const productName =
+        product?.name ||
+        product?.productName ||
+        "";
+
+    const name =
+        productName
+            .toLowerCase()
+            .trim();
+
+
+    // ==========================================
+    // TESTING RING
+    // ==========================================
+    if (name.includes("testing ring")) {
+        return "/products/testing_ring.jpg";
+    }
+
+
+    // ==========================================
+    // MOBILE
+    // ==========================================
+    if (name.includes("iphone")) {
+        return "/products/iphone.jpg";
+    }
+
+    if (name.includes("samsung")) {
+        return "/products/samsung.jpg";
+    }
+
+
+    // ==========================================
+    // AUDIO
+    // ==========================================
+    if (name.includes("wireless headphones")) {
+        return "/products/headphones.jpg";
+    }
+
+    if (name.includes("bluetooth earbuds")) {
+        return "/products/earbuds.jpg";
+    }
+
+    if (name.includes("wired earphones")) {
+        return "/products/wired-earphones.jpg";
+    }
+
+    if (name.includes("bluetooth speaker")) {
+        return "/products/speaker.jpg";
+    }
+
+
+    // ==========================================
+    // WEARABLES
+    // ==========================================
+    if (name.includes("smart watch")) {
+        return "/products/smartwatch.jpg";
+    }
+
+    if (name.includes("fitness band")) {
+        return "/products/fitness-band.jpg";
+    }
+
+
+    // ==========================================
+    // COMPUTERS
+    // ==========================================
+    if (name.includes("hp laptop")) {
+        return "/products/hp-laptop.jpg";
+    }
+
+    if (name.includes("macbook")) {
+        return "/products/macbook.jpg";
+    }
+
+
+    // ==========================================
+    // ACCESSORIES
+    // ==========================================
+    if (name.includes("power bank")) {
+        return "/products/powerbank.jpg";
+    }
+
+    if (name.includes("usb-c charger")) {
+        return "/products/charger.jpg";
+    }
+
+    if (name.includes("laptop backpack")) {
+        return "/products/backpack.jpg";
+    }
+
+
+    // ==========================================
+    // HOME & KITCHEN
+    // ==========================================
+    if (name.includes("air fryer")) {
+        return "/products/air-fryer.jpg";
+    }
+
+    if (name.includes("electric kettle")) {
+        return "/products/kettle.jpg";
+    }
+
+
+    // ==========================================
+    // GAMING
+    // ==========================================
+    if (name.includes("gaming controller")) {
+        return "/products/gaming-controller.jpg";
+    }
+
+    if (name.includes("gaming mouse")) {
+        return "/products/gaming-mouse.jpg";
+    }
+
+
+    // No image found
+    return "";
+};
+
+
+// ==========================================
+// CART PROVIDER
+// ==========================================
 export const CartProvider = ({ children }) => {
 
-    const [cartItems, setCartItems] = useState([]);
+    const [cartItems, setCartItems] =
+        useState([]);
 
     const [cartLoading, setCartLoading] =
         useState(true);
@@ -27,7 +166,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // AUTH CONFIG
     // ==========================================
-
     const getAuthConfig = () => {
 
         const token =
@@ -37,6 +175,7 @@ export const CartProvider = ({ children }) => {
             headers: {
                 Authorization:
                     `Bearer ${token}`,
+
                 "Content-Type":
                     "application/json",
             },
@@ -47,7 +186,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // LOAD CART FROM BACKEND
     // ==========================================
-
     const loadCart = async () => {
 
         const token =
@@ -121,19 +259,10 @@ export const CartProvider = ({ children }) => {
                     backendItems.map(
                         (item) => {
 
-                            /*
-                             * Find the original product
-                             * from frontend products list.
-                             */
-
-                            const product =
-                                products.find(
-                                    (product) =>
-                                        product.id ===
-                                        Number(
-                                            item.productId
-                                        )
-                                );
+                            const productName =
+                                item.productName ||
+                                item.name ||
+                                "Product";
 
 
                             return {
@@ -143,35 +272,58 @@ export const CartProvider = ({ children }) => {
                                         item.productId
                                     ),
 
+
                                 name:
-                                    item.productName,
+                                    productName,
+
 
                                 price:
                                     Number(
                                         item.unitPrice
                                     ),
 
+
                                 quantity:
                                     Number(
                                         item.quantity
                                     ),
 
-                                /*
-                                 * Image comes from the
-                                 * frontend product data.
-                                 */
 
+                                /*
+                                 * Get image directly
+                                 * from backend item if
+                                 * available, otherwise
+                                 * use the existing
+                                 * frontend image mapping.
+                                 */
                                 image:
-                                    product?.image || "",
+                                    getProductImage({
+                                        ...item,
+
+                                        name:
+                                            productName,
+
+                                        productName:
+                                            productName,
+
+                                        image:
+                                            item.image,
+
+                                        imageUrl:
+                                            item.imageUrl,
+                                    }),
+
 
                                 category:
-                                    product?.category || "",
+                                    item.category ||
+                                    item.categoryName ||
+                                    "",
+
 
                                 description:
-                                    product?.description || "",
-
+                                    item.description ||
+                                    "",
                             };
-
                         }
                     );
 
@@ -191,7 +343,6 @@ export const CartProvider = ({ children }) => {
                  * Save the correctly formatted
                  * cart locally.
                  */
-
                 localStorage.setItem(
                     "cartItems",
                     JSON.stringify(
@@ -202,8 +353,8 @@ export const CartProvider = ({ children }) => {
             } else {
 
                 setCartItems([]);
-
             }
+
 
         } catch (error) {
 
@@ -247,20 +398,19 @@ export const CartProvider = ({ children }) => {
                         storageError
                     );
 
-                    setCartItems([]);
 
+                    setCartItems([]);
                 }
 
             } else {
 
                 setCartItems([]);
-
             }
+
 
         } finally {
 
             setCartLoading(false);
-
         }
     };
 
@@ -268,7 +418,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // LOAD CART WHEN APP STARTS
     // ==========================================
-
     useEffect(() => {
 
         loadCart();
@@ -279,7 +428,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // SAVE CART TO LOCAL STORAGE
     // ==========================================
-
     useEffect(() => {
 
         if (cartItems.length > 0) {
@@ -296,7 +444,6 @@ export const CartProvider = ({ children }) => {
             localStorage.removeItem(
                 "cartItems"
             );
-
         }
 
     }, [cartItems]);
@@ -305,7 +452,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // ADD TO CART
     // ==========================================
-
     const addToCart = async (product) => {
 
         try {
@@ -314,19 +460,26 @@ export const CartProvider = ({ children }) => {
                 "===== ADDING PRODUCT TO CART ====="
             );
 
+
             console.log(
                 "PRODUCT:",
                 product
             );
 
 
+            // ==========================================
+            // SAVE PRODUCT TO BACKEND CART
+            // ==========================================
             await axios.post(
                 `${API_URL}/items`,
+
                 null,
+
                 {
                     ...getAuthConfig(),
 
                     params: {
+
                         productId:
                             product.id,
 
@@ -336,6 +489,9 @@ export const CartProvider = ({ children }) => {
             );
 
 
+            // ==========================================
+            // UPDATE FRONTEND CART
+            // ==========================================
             setCartItems(
                 (previousItems) => {
 
@@ -347,53 +503,83 @@ export const CartProvider = ({ children }) => {
                         );
 
 
+                    // ==========================================
+                    // PRODUCT ALREADY EXISTS
+                    // ==========================================
                     if (existingItem) {
 
                         return previousItems.map(
                             (item) =>
+
                                 item.id ===
                                 product.id
+
                                     ? {
+
                                         ...item,
 
                                         quantity:
                                             item.quantity +
                                             1,
                                     }
+
                                     : item
                         );
-
                     }
 
 
+                    // ==========================================
+                    // NEW PRODUCT
+                    // ==========================================
                     return [
+
                         ...previousItems,
 
                         {
+
                             id:
                                 product.id,
 
+
                             name:
-                                product.name,
+                                product.name ||
+                                product.productName ||
+                                "Product",
+
 
                             price:
                                 Number(
                                     product.price
                                 ),
 
+
                             quantity: 1,
 
+
+                            /*
+                             * Important:
+                             * Resolve the image here
+                             * instead of relying on
+                             * the static products array.
+                             */
                             image:
-                                product.image,
+                                getProductImage(
+                                    product
+                                ),
+
 
                             category:
-                                product.category,
+                                product.category ||
+                                product.categoryName ||
+                                "",
+
 
                             description:
-                                product.description,
+                                product.description ||
+                                "",
                         },
-                    ];
 
+                    ];
                 }
             );
 
@@ -404,6 +590,7 @@ export const CartProvider = ({ children }) => {
 
 
             return true;
+
 
         } catch (error) {
 
@@ -433,7 +620,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // INCREASE QUANTITY
     // ==========================================
-
     const increaseQuantity =
         async (productId) => {
 
@@ -458,11 +644,14 @@ export const CartProvider = ({ children }) => {
 
                 await axios.put(
                     `${API_URL}/items/${productId}`,
+
                     null,
+
                     {
                         ...getAuthConfig(),
 
                         params: {
+
                             quantity:
                                 newQuantity,
                         },
@@ -472,19 +661,25 @@ export const CartProvider = ({ children }) => {
 
                 setCartItems(
                     (previousItems) =>
+
                         previousItems.map(
                             (cartItem) =>
+
                                 cartItem.id ===
                                 productId
+
                                     ? {
+
                                         ...cartItem,
 
                                         quantity:
                                             newQuantity,
                                     }
+
                                     : cartItem
                         )
                 );
+
 
             } catch (error) {
 
@@ -505,7 +700,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // DECREASE QUANTITY
     // ==========================================
-
     const decreaseQuantity =
         async (productId) => {
 
@@ -528,18 +722,24 @@ export const CartProvider = ({ children }) => {
 
             try {
 
+                // ==========================================
+                // REMOVE WHEN QUANTITY BECOMES ZERO
+                // ==========================================
                 if (newQuantity <= 0) {
 
                     await axios.delete(
                         `${API_URL}/items/${productId}`,
+
                         getAuthConfig()
                     );
 
 
                     setCartItems(
                         (previousItems) =>
+
                             previousItems.filter(
                                 (cartItem) =>
+
                                     cartItem.id !==
                                     productId
                             )
@@ -550,13 +750,19 @@ export const CartProvider = ({ children }) => {
                 }
 
 
+                // ==========================================
+                // UPDATE QUANTITY
+                // ==========================================
                 await axios.put(
                     `${API_URL}/items/${productId}`,
+
                     null,
+
                     {
                         ...getAuthConfig(),
 
                         params: {
+
                             quantity:
                                 newQuantity,
                         },
@@ -566,19 +772,25 @@ export const CartProvider = ({ children }) => {
 
                 setCartItems(
                     (previousItems) =>
+
                         previousItems.map(
                             (cartItem) =>
+
                                 cartItem.id ===
                                 productId
+
                                     ? {
+
                                         ...cartItem,
 
                                         quantity:
                                             newQuantity,
                                     }
+
                                     : cartItem
                         )
                 );
+
 
             } catch (error) {
 
@@ -599,7 +811,6 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // REMOVE FROM CART
     // ==========================================
-
     const removeFromCart =
         async (productId) => {
 
@@ -607,18 +818,22 @@ export const CartProvider = ({ children }) => {
 
                 await axios.delete(
                     `${API_URL}/items/${productId}`,
+
                     getAuthConfig()
                 );
 
 
                 setCartItems(
                     (previousItems) =>
+
                         previousItems.filter(
                             (item) =>
+
                                 item.id !==
                                 productId
                         )
                 );
+
 
             } catch (error) {
 
@@ -639,18 +854,19 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // CLEAR CART
     // ==========================================
-
     const clearCart = async () => {
 
         try {
 
             await axios.delete(
                 API_URL,
+
                 getAuthConfig()
             );
 
 
             setCartItems([]);
+
 
             localStorage.removeItem(
                 "cartItems"
@@ -660,6 +876,7 @@ export const CartProvider = ({ children }) => {
             console.log(
                 "CART CLEARED SUCCESSFULLY"
             );
+
 
         } catch (error) {
 
@@ -676,6 +893,7 @@ export const CartProvider = ({ children }) => {
 
             setCartItems([]);
 
+
             localStorage.removeItem(
                 "cartItems"
             );
@@ -686,13 +904,14 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // TOTAL
     // ==========================================
-
     const total =
         cartItems.reduce(
             (sum, item) =>
+
                 sum +
                 Number(item.price) *
                 Number(item.quantity),
+
             0
         );
 
@@ -700,10 +919,11 @@ export const CartProvider = ({ children }) => {
     // ==========================================
     // PROVIDER
     // ==========================================
-
     return (
+
         <CartContext.Provider
             value={{
+
                 cartItems,
 
                 cartLoading,
@@ -723,7 +943,9 @@ export const CartProvider = ({ children }) => {
                 loadCart,
             }}
         >
+
             {children}
+
         </CartContext.Provider>
     );
 };
@@ -732,7 +954,6 @@ export const CartProvider = ({ children }) => {
 // ==========================================
 // USE CART
 // ==========================================
-
 export const useCart = () => {
 
     const context =
@@ -744,7 +965,6 @@ export const useCart = () => {
         throw new Error(
             "useCart must be used inside CartProvider"
         );
-
     }
 
 
