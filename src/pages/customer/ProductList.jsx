@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API_URL = "/api/products";
+const API_URL = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api"}/products`;
 
 function ProductList() {
     const navigate = useNavigate();
