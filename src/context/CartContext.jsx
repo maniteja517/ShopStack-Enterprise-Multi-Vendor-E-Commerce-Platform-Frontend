@@ -7,12 +7,10 @@ import {
 
 import axios from "axios";
 
-
 const CartContext = createContext(null);
 
-
-const API_URL = "http://localhost:8081/api/cart";
-
+// Docker/Nginx compatible API URL
+const API_URL = "/api/cart";
 
 // ==========================================
 // PRODUCT IMAGE
@@ -30,7 +28,6 @@ const getProductImage = (product) => {
         return product.imageUrl;
     }
 
-
     const productName =
         product?.name ||
         product?.productName ||
@@ -41,14 +38,12 @@ const getProductImage = (product) => {
             .toLowerCase()
             .trim();
 
-
     // ==========================================
     // TESTING RING
     // ==========================================
     if (name.includes("testing ring")) {
         return "/products/testing_ring.jpg";
     }
-
 
     // ==========================================
     // MOBILE
@@ -60,7 +55,6 @@ const getProductImage = (product) => {
     if (name.includes("samsung")) {
         return "/products/samsung.jpg";
     }
-
 
     // ==========================================
     // AUDIO
@@ -81,7 +75,6 @@ const getProductImage = (product) => {
         return "/products/speaker.jpg";
     }
 
-
     // ==========================================
     // WEARABLES
     // ==========================================
@@ -93,7 +86,6 @@ const getProductImage = (product) => {
         return "/products/fitness-band.jpg";
     }
 
-
     // ==========================================
     // COMPUTERS
     // ==========================================
@@ -104,7 +96,6 @@ const getProductImage = (product) => {
     if (name.includes("macbook")) {
         return "/products/macbook.jpg";
     }
-
 
     // ==========================================
     // ACCESSORIES
@@ -121,7 +112,6 @@ const getProductImage = (product) => {
         return "/products/backpack.jpg";
     }
 
-
     // ==========================================
     // HOME & KITCHEN
     // ==========================================
@@ -133,7 +123,6 @@ const getProductImage = (product) => {
         return "/products/kettle.jpg";
     }
 
-
     // ==========================================
     // GAMING
     // ==========================================
@@ -144,7 +133,6 @@ const getProductImage = (product) => {
     if (name.includes("gaming mouse")) {
         return "/products/gaming-mouse.jpg";
     }
-
 
     // No image found
     return "";
@@ -191,7 +179,6 @@ export const CartProvider = ({ children }) => {
         const token =
             localStorage.getItem("token");
 
-
         if (!token) {
 
             setCartItems([]);
@@ -201,13 +188,11 @@ export const CartProvider = ({ children }) => {
             return;
         }
 
-
         try {
 
             console.log(
                 "===== LOADING CART FROM BACKEND ====="
             );
-
 
             const response =
                 await axios.get(
@@ -215,12 +200,10 @@ export const CartProvider = ({ children }) => {
                     getAuthConfig()
                 );
 
-
             console.log(
                 "CART API RESPONSE:",
                 response.data
             );
-
 
             if (
                 response.data &&
@@ -230,10 +213,8 @@ export const CartProvider = ({ children }) => {
                 const backendCart =
                     response.data.data;
 
-
                 const backendItems =
                     backendCart?.items || [];
-
 
                 /*
                  * Convert backend cart items
@@ -264,7 +245,6 @@ export const CartProvider = ({ children }) => {
                                 item.name ||
                                 "Product";
 
-
                             return {
 
                                 id:
@@ -272,22 +252,18 @@ export const CartProvider = ({ children }) => {
                                         item.productId
                                     ),
 
-
                                 name:
                                     productName,
-
 
                                 price:
                                     Number(
                                         item.unitPrice
                                     ),
 
-
                                 quantity:
                                     Number(
                                         item.quantity
                                     ),
-
 
                                 /*
                                  * Get image directly
@@ -313,12 +289,10 @@ export const CartProvider = ({ children }) => {
                                             item.imageUrl,
                                     }),
 
-
                                 category:
                                     item.category ||
                                     item.categoryName ||
                                     "",
-
 
                                 description:
                                     item.description ||
@@ -327,17 +301,14 @@ export const CartProvider = ({ children }) => {
                         }
                     );
 
-
                 console.log(
                     "FORMATTED CART ITEMS:",
                     formattedItems
                 );
 
-
                 setCartItems(
                     formattedItems
                 );
-
 
                 /*
                  * Save the correctly formatted
@@ -355,7 +326,6 @@ export const CartProvider = ({ children }) => {
                 setCartItems([]);
             }
 
-
         } catch (error) {
 
             console.error(
@@ -363,12 +333,10 @@ export const CartProvider = ({ children }) => {
                 error
             );
 
-
             console.error(
                 "Backend response:",
                 error.response?.data
             );
-
 
             /*
              * Fallback to localStorage
@@ -379,7 +347,6 @@ export const CartProvider = ({ children }) => {
                 localStorage.getItem(
                     "cartItems"
                 );
-
 
             if (savedCart) {
 
@@ -398,7 +365,6 @@ export const CartProvider = ({ children }) => {
                         storageError
                     );
 
-
                     setCartItems([]);
                 }
 
@@ -406,7 +372,6 @@ export const CartProvider = ({ children }) => {
 
                 setCartItems([]);
             }
-
 
         } finally {
 
@@ -460,12 +425,10 @@ export const CartProvider = ({ children }) => {
                 "===== ADDING PRODUCT TO CART ====="
             );
 
-
             console.log(
                 "PRODUCT:",
                 product
             );
-
 
             // ==========================================
             // SAVE PRODUCT TO BACKEND CART
@@ -502,7 +465,6 @@ export const CartProvider = ({ children }) => {
                                 product.id
                         );
 
-
                     // ==========================================
                     // PRODUCT ALREADY EXISTS
                     // ==========================================
@@ -527,7 +489,6 @@ export const CartProvider = ({ children }) => {
                         );
                     }
 
-
                     // ==========================================
                     // NEW PRODUCT
                     // ==========================================
@@ -540,21 +501,17 @@ export const CartProvider = ({ children }) => {
                             id:
                                 product.id,
 
-
                             name:
                                 product.name ||
                                 product.productName ||
                                 "Product",
-
 
                             price:
                                 Number(
                                     product.price
                                 ),
 
-
                             quantity: 1,
-
 
                             /*
                              * Important:
@@ -567,12 +524,10 @@ export const CartProvider = ({ children }) => {
                                     product
                                 ),
 
-
                             category:
                                 product.category ||
                                 product.categoryName ||
                                 "",
-
 
                             description:
                                 product.description ||
@@ -588,9 +543,7 @@ export const CartProvider = ({ children }) => {
                 "PRODUCT ADDED TO CART SUCCESSFULLY"
             );
 
-
             return true;
-
 
         } catch (error) {
 
@@ -599,18 +552,15 @@ export const CartProvider = ({ children }) => {
                 error
             );
 
-
             console.error(
                 "BACKEND RESPONSE:",
                 error.response?.data
             );
 
-
             alert(
                 error.response?.data?.message ||
                 "Failed to add product to cart"
             );
-
 
             return false;
         }
@@ -630,15 +580,12 @@ export const CartProvider = ({ children }) => {
                         productId
                 );
 
-
             if (!item) {
                 return;
             }
 
-
             const newQuantity =
                 item.quantity + 1;
-
 
             try {
 
@@ -657,7 +604,6 @@ export const CartProvider = ({ children }) => {
                         },
                     }
                 );
-
 
                 setCartItems(
                     (previousItems) =>
@@ -680,14 +626,12 @@ export const CartProvider = ({ children }) => {
                         )
                 );
 
-
             } catch (error) {
 
                 console.error(
                     "INCREASE QUANTITY ERROR:",
                     error
                 );
-
 
                 alert(
                     error.response?.data?.message ||
@@ -710,15 +654,12 @@ export const CartProvider = ({ children }) => {
                         productId
                 );
 
-
             if (!item) {
                 return;
             }
 
-
             const newQuantity =
                 item.quantity - 1;
-
 
             try {
 
@@ -733,7 +674,6 @@ export const CartProvider = ({ children }) => {
                         getAuthConfig()
                     );
 
-
                     setCartItems(
                         (previousItems) =>
 
@@ -745,10 +685,8 @@ export const CartProvider = ({ children }) => {
                             )
                     );
 
-
                     return;
                 }
-
 
                 // ==========================================
                 // UPDATE QUANTITY
@@ -768,7 +706,6 @@ export const CartProvider = ({ children }) => {
                         },
                     }
                 );
-
 
                 setCartItems(
                     (previousItems) =>
@@ -791,14 +728,12 @@ export const CartProvider = ({ children }) => {
                         )
                 );
 
-
             } catch (error) {
 
                 console.error(
                     "DECREASE QUANTITY ERROR:",
                     error
                 );
-
 
                 alert(
                     error.response?.data?.message ||
@@ -822,7 +757,6 @@ export const CartProvider = ({ children }) => {
                     getAuthConfig()
                 );
 
-
                 setCartItems(
                     (previousItems) =>
 
@@ -834,14 +768,12 @@ export const CartProvider = ({ children }) => {
                         )
                 );
 
-
             } catch (error) {
 
                 console.error(
                     "REMOVE FROM CART ERROR:",
                     error
                 );
-
 
                 alert(
                     error.response?.data?.message ||
@@ -864,19 +796,15 @@ export const CartProvider = ({ children }) => {
                 getAuthConfig()
             );
 
-
             setCartItems([]);
-
 
             localStorage.removeItem(
                 "cartItems"
             );
 
-
             console.log(
                 "CART CLEARED SUCCESSFULLY"
             );
-
 
         } catch (error) {
 
@@ -885,14 +813,12 @@ export const CartProvider = ({ children }) => {
                 error
             );
 
-
             /*
              * Clear frontend even if the
              * backend cart is already empty.
              */
 
             setCartItems([]);
-
 
             localStorage.removeItem(
                 "cartItems"
@@ -959,14 +885,12 @@ export const useCart = () => {
     const context =
         useContext(CartContext);
 
-
     if (!context) {
 
         throw new Error(
             "useCart must be used inside CartProvider"
         );
     }
-
 
     return context;
 };
