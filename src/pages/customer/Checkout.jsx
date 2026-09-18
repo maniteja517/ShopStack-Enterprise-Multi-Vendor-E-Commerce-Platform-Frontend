@@ -124,7 +124,7 @@ function Checkout() {
         }
 
         const response = await fetch(
-            "http://localhost:8081/api/payments",
+            "/api/payments",
             {
                 method: "POST",
 
@@ -188,7 +188,7 @@ function Checkout() {
         );
 
         const response = await fetch(
-            `http://localhost:8081/api/payments/${payment.id}/verify?${params.toString()}`,
+            `/api/payments/${payment.id}/verify?${params.toString()}`,
             {
                 method: "POST",
 
@@ -569,7 +569,6 @@ function Checkout() {
                     );
                 },
             });
-
         } catch (error) {
             console.error(
                 "Checkout Error:",
